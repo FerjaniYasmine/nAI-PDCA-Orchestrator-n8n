@@ -1,0 +1,500 @@
+{
+  "name": "AI PDCA Orchester9",
+  "nodes": [
+    {
+      "parameters": {},
+      "type": "n8n-nodes-base.manualTrigger",
+      "typeVersion": 1,
+      "position": [
+        -1456,
+        144
+      ],
+      "id": "46e20d35-cbca-4215-8bfd-41a972063acd",
+      "name": "When clicking ‘Execute workflow’"
+    },
+    {
+      "parameters": {
+        "fileSelector": "/data/defects_data.csv",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1248,
+        144
+      ],
+      "id": "86b6d8bd-0c7d-48ed-a562-2019f3431c51",
+      "name": "Read/Write Files from Disk"
+    },
+    {
+      "parameters": {
+        "options": {}
+      },
+      "type": "n8n-nodes-base.extractFromFile",
+      "typeVersion": 1.1,
+      "position": [
+        -1040,
+        144
+      ],
+      "id": "2b29e03d-6a65-43e6-a796-b95234cfef6c",
+      "name": "Extract from File"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Récupère TOUS les items venant du CSV\nconst allItems = $input.all();\n\nlet total_defects = allItems.length;\nlet total_repair_cost = 0;\nlet valid_repair_costs = 0;\nlet severity_counts = {};\nlet defect_type_counts = {};\nlet location_counts = {};\nlet inspection_counts = {};\n\nallItems.forEach(item => {\n  const row = item.json;\n\n  // Calcul des coûts de réparation\n  if (row.repair_cost != null && !isNaN(parseFloat(row.repair_cost))) {\n    total_repair_cost += parseFloat(row.repair_cost);\n    valid_repair_costs++;\n  }\n\n  // Distribution par sévérité\n  const severity = String(row.severity || \"unknown\").trim();\n  severity_counts[severity] = (severity_counts[severity] || 0) + 1;\n\n  // Distribution par type de défaut\n  const defectType = String(row.defect_type || \"unknown\").trim();\n  defect_type_counts[defectType] = (defect_type_counts[defectType] || 0) + 1;\n\n  // Distribution par localisation\n  const location = String(row.defect_location || \"unknown\").trim();\n  location_counts[location] = (location_counts[location] || 0) + 1;\n\n  // Distribution par méthode d'inspection\n  const inspection = String(row.inspection_method || \"unknown\").trim();\n  inspection_counts[inspection] = (inspection_counts[inspection] || 0) + 1;\n});\n\nconst avg_repair_cost = valid_repair_costs > 0 \n  ? Math.round((total_repair_cost / valid_repair_costs) * 100) / 100 \n  : 0;\n\nreturn [{\n  json: {\n    kpis: {\n      total_defects: total_defects,\n      total_repair_cost: Math.round(total_repair_cost * 100) / 100,\n      avg_repair_cost: avg_repair_cost,\n      valid_repair_cost_count: valid_repair_costs,\n      severity_distribution: severity_counts,\n      most_common_severity: Object.keys(severity_counts).reduce((a, b) => severity_counts[a] > severity_counts[b] ? a : b),\n      defect_type_distribution: defect_type_counts,\n      defect_location_distribution: location_counts,\n      inspection_method_distribution: inspection_counts\n    },\n    sample_data: allItems.slice(0, 10)   // 10 exemples pour l'IA\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -880,
+        176
+      ],
+      "id": "a4bc6034-6c92-47fa-8b9e-014d964b8fe4",
+      "name": "Code in JavaScript"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un expert en Management Qualité Industrielle (ISO 9001, PDCA).\n\nVoici les KPIs du mois :\n{{ $json.kpis }}\n\nÉchantillon de données :\n{{ JSON.stringify($json.raw_data_sample, null, 2) }}\n\nFais une analyse CHECK complète :\n- Points forts / points faibles\n- Causes racines probables (5M ou Ishikawa)\n- KPIs critiques à surveiller\n\nRéponds **uniquement** en JSON structuré et valide, sans aucun texte avant ou après :\n{\n  \"analyse\": \"texte détaillé de l'analyse...\",\n  \"kpis_critiques\": [\"kpi1\", \"kpi2\", ...],\n  \"points_forts\": [\"...\"],\n  \"points_faibles\": [\"...\"],\n  \"causes_racines\": [\"...\"]\n}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -624,
+        160
+      ],
+      "id": "509cd1df-ff4d-4351-9e94-5718f820242b",
+      "name": "Basic LLM Chain"
+    },
+    {
+      "parameters": {
+        "model": "=llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -496,
+        336
+      ],
+      "id": "2f250ed7-727a-420d-8b67-903e352558c5",
+      "name": "Ollama Chat Model",
+      "credentials": {
+        "ollamaApi": {
+          "id": "SWsR316NN0HEdKPL",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        -96,
+        352
+      ],
+      "id": "5a997388-adc1-40df-98f2-32e7795ca749",
+      "name": "Ollama Chat Model1",
+      "credentials": {
+        "ollamaApi": {
+          "id": "SWsR316NN0HEdKPL",
+          "name": "Ollama account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu es un expert en Management Qualité Industrielle.\n\nAnalyse CHECK :\n{{ $json.analyse }}\n\nCrée les décisions ACT.\n\nRéponds **EXCLUSIVEMENT** avec ce JSON valide, sans aucun texte supplémentaire, sans explication, sans ```json :\n\n{\n  \"decisions\": [\n    {\n      \"action\": \"description de l'action\",\n      \"priorite\": \"High\",\n      \"responsable\": \"nom du responsable\",\n      \"delai\": \"dans X semaines\",\n      \"cout_estime\": \"X €\"\n    }\n  ]\n}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        -96,
+        176
+      ],
+      "id": "8a67e259-cca2-4eae-8744-2b5f331d7ffe",
+      "name": "Basic LLM Chain1"
+    },
+    {
+      "parameters": {
+        "promptType": "define",
+        "text": "=Tu as les décisions ACT : {{ $json.decisions }}\n\nCrée le PLAN d’action détaillé pour le prochain cycle PDCA.\n\nRéponds **UNIQUEMENT** avec un JSON valide, sans aucun texte avant, après, ni explication, ni ```json :\n\n{\n  \"cycle_PDCA\": {\n    \"objectif\": { \"titre\": \"...\", \"description\": \"...\", \"indicateur_de_succes\": [...] },\n    \"ressources_necessaires\": { ... },\n    \"indicateurs_de_succes\": { ... },\n    \"echeancier\": { ... }\n  }\n}",
+        "batching": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.chainLlm",
+      "typeVersion": 1.9,
+      "position": [
+        432,
+        192
+      ],
+      "id": "4278c046-e334-4922-8921-aeafb3326ffb",
+      "name": "Basic LLM Chain2"
+    },
+    {
+      "parameters": {
+        "model": "llama3.2:latest",
+        "options": {}
+      },
+      "type": "@n8n/n8n-nodes-langchain.lmChatOllama",
+      "typeVersion": 1,
+      "position": [
+        352,
+        368
+      ],
+      "id": "33a0bd33-1fea-4960-b933-de5263b1b62b",
+      "name": "Ollama Chat Model2",
+      "credentials": {
+        "ollamaApi": {
+          "id": "SWsR316NN0HEdKPL",
+          "name": "Ollama account"
+        }
+      },
+      "disabled": true
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "d4f3fb75-a5b4-4a8e-8573-c655de466b20",
+              "name": "do_simulation",
+              "value": "Plan mis en œuvre automatiquement dans le prochain cycle PDCA. Simulation Do terminée avec succès.",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        736,
+        304
+      ],
+      "id": "c46e618f-ac89-49c1-82a4-33c875bbcc92",
+      "name": "Edit Fields"
+    },
+    {
+      "parameters": {
+        "assignments": {
+          "assignments": [
+            {
+              "id": "8c3e3989-4db5-47f1-96fe-eae929829f25",
+              "name": "kpis",
+              "value": "={{ $node[\"Code in JavaScript\"].json.kpis }}",
+              "type": "string"
+            },
+            {
+              "id": "1e9e7444-515a-48b7-b186-4d4b121decf7",
+              "name": "=check_analyse",
+              "value": "={{ $node[\"Code in JavaScript1\"].json.analyse || $node[\"Basic LLM Chain1\"].json }}",
+              "type": "string"
+            },
+            {
+              "id": "0f4cdf24-233f-4c5f-af56-aa7fd90846f8",
+              "name": "act_decisions",
+              "value": "={{ $node[\"Code in JavaScript2\"].json.decisions || $node[\"Basic LLM Chain2\"].json.decisions }}",
+              "type": "string"
+            },
+            {
+              "id": "70a01402-139b-4414-bbf5-8f7e5d453956",
+              "name": "plan_action",
+              "value": "={{ $node[\"Code in JavaScript3\"].json.plan_action || $node[\"Basic LLM Chain3\"].json }}",
+              "type": "string"
+            },
+            {
+              "id": "80bc7441-9378-4fae-8d93-11ea0f9c8161",
+              "name": "do_simulation",
+              "value": "={{ $json.do_simulation }}",
+              "type": "string"
+            },
+            {
+              "id": "ff76af58-987a-4ea7-b82e-a45586b09b0f",
+              "name": "timestamp",
+              "value": "={{ new Date().toISOString() }}",
+              "type": "string"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.set",
+      "typeVersion": 3.4,
+      "position": [
+        544,
+        480
+      ],
+      "id": "c2b0fb3e-7470-4847-af7a-6596008e47f7",
+      "name": "Edit Fields1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nlet raw = item.text || item.response || item.raw_llm_output || JSON.stringify(item);\n\n // Nettoyage\nraw = raw.replace(/^```(?:json)?\\s*/i, '').replace(/```\\s*$/i, '').trim();\n\ntry {\n  const parsed = JSON.parse(raw);\n  return [{\n    json: {\n      kpis: parsed.kpis || item.kpis || {},\n      analyse: parsed.analyse || parsed.analysis || raw,\n      ...parsed\n    }\n  }];\n} catch (e) {\n  return [{\n    json: {\n      analyse: raw,\n      raw_llm_output: raw\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        -304,
+        160
+      ],
+      "id": "1873f8e4-ed12-4dd6-ba1b-9a999266febc",
+      "name": "Code in JavaScript1"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nlet raw = item.text || item.response || item.raw_llm_output || JSON.stringify(item);\n\nraw = raw.replace(/^```(?:json)?\\s*/i, '').replace(/```\\s*$/i, '').replace(/;\\s*$/, '').trim();\n\nif (raw.endsWith(']') && !raw.endsWith('}')) raw += '}';\n\ntry {\n  const parsed = JSON.parse(raw);\n  return [{\n    json: {\n      decisions: Array.isArray(parsed.decisions) ? parsed.decisions : [],\n      raw_llm_output: raw\n    }\n  }];\n} catch (e) {\n  return [{\n    json: {\n      decisions: [],\n      raw_llm_output: raw\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        240,
+        48
+      ],
+      "id": "285ba405-ec78-48e5-a650-d09ff86f9b4b",
+      "name": "Code in JavaScript2"
+    },
+    {
+      "parameters": {
+        "jsCode": "const item = $input.first().json;\nlet raw = item.text || item.response || item.raw_llm_output || JSON.stringify(item);\n\nraw = raw.replace(/^```(?:json)?\\s*/i, '').replace(/```\\s*$/i, '').trim();\n\ntry {\n  const parsed = JSON.parse(raw);\n  return [{\n    json: {\n      plan_action: parsed.plan_action || parsed.plan || parsed,\n      raw_llm_output: raw\n    }\n  }];\n} catch (e) {\n  return [{\n    json: {\n      plan_action: raw,\n      raw_llm_output: raw\n    }\n  }];\n}"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        784,
+        112
+      ],
+      "id": "dfd70c76-b154-4ed8-846a-f31e84926e35",
+      "name": "Code in JavaScript3"
+    },
+    {
+      "parameters": {
+        "jsCode": "// ════════════════════════════════════════════════════════════\n//  AI PDCA Orchestrator — Code in JavaScript6 (nœud HTML)\n//  Workflow : CSV → LLM CHECK → LLM ACT → LLM PLAN → HTML\n// ════════════════════════════════════════════════════════════\n\nconst input = $input.first().json;\n\n// ── 1. PARSING DÉFENSIF ──────────────────────────────────────\n// Les LLM renvoient souvent des strings JSON avec \\\" échappés\nfunction parseField(val) {\n  if (!val) return null;\n  if (typeof val === 'object') return val;\n  if (typeof val !== 'string') return null;\n  const s = val.trim();\n  // Tentative 1 : JSON direct\n  try { return JSON.parse(s); } catch (_) {}\n  // Tentative 2 : nettoyage des échappements \\\" → \"\n  try {\n    const c = s.replace(/\\\\\"/g, '\"').replace(/\\\\n\\s*/g, ' ').replace(/\\\\\\\\/g, '\\\\');\n    return JSON.parse(c);\n  } catch (_) {}\n  // Tentative 3 : fix indicateurs_de_succes avec syntaxe Set {} invalide\n  try {\n    const c = s\n      .replace(/\\\\\"/g, '\"').replace(/\\\\n\\s*/g, ' ')\n      .replace(/\"indicateurs_de_succes\"\\s*:\\s*\\{([^}]*)\\}/g, (_, inner) => {\n        const items = inner.match(/\"([^\"]+)\"/g) || [];\n        return `\"indicateurs_de_succes\": [${items.join(',')}]`;\n      });\n    return JSON.parse(c);\n  } catch (_) {}\n  return null;\n}\n\nfunction parseArray(val) {\n  if (!val) return [];\n  if (Array.isArray(val)) return val;\n  const p = parseField(val);\n  if (Array.isArray(p)) return p;\n  if (p && typeof p === 'object') return [p];\n  return [];\n}\n\n// ── 2. EXTRACTION DONNÉES ────────────────────────────────────\n// Les KPIs arrivent sous input.kpis.sample_data OU directement input.kpis\nconst rawKpisRoot = input.kpis || input.kpi || {};\nconst rawKpisObj  = (typeof rawKpisRoot === 'object' && !Array.isArray(rawKpisRoot))\n  ? rawKpisRoot : (parseField(rawKpisRoot) || {});\n\n// Chercher sous sample_data ou directement à la racine\nconst kpis = rawKpisObj.sample_data || rawKpisObj;\n\n// Distributions pour les graphiques\nconst severityDist   = kpis.severity_distribution   || {};\nconst defectTypeDist = kpis.defect_type_distribution || {};\nconst locationDist   = kpis.defect_location_distribution || {};\nconst methodDist     = kpis.inspection_method_distribution || {};\n\n// CHECK, ACT, PLAN — multi-clés + fallback\nconst rawCheck = input.check_analyse || input.analyse || input.check || null;\nconst rawAct   = input.act_decisions || input.decisions || input.act || null;\nconst rawPlan  = input.plan_action   || input.plan     || null;\n\nconst check = parseField(rawCheck) || {};\nconst act   = parseArray(rawAct);\nconst plan  = parseField(rawPlan)  || {};\n\nconst doMsg = input.do_simulation || 'Plan simulé et mis en oeuvre automatiquement pour le prochain cycle PDCA.';\n\n// ── 3. HELPERS ───────────────────────────────────────────────\nconst fmt    = v => (v !== undefined && v !== null) ? Number(v).toLocaleString('fr-FR', { minimumFractionDigits: 0, maximumFractionDigits: 2 }) : '-';\nconst fmtEur = v => v ? fmt(v) + ' EUR' : '-';\nconst safe   = v => (v !== undefined && v !== null && v !== '') ? v : '-';\nconst today  = new Date().toLocaleDateString('fr-FR', { year: 'numeric', month: 'long', day: 'numeric' });\n\n// ── 4. RENDU DISTRIBUTIONS (mini bar chart HTML) ─────────────\nfunction renderDistribution(distObj, colorClass) {\n  if (!distObj || Object.keys(distObj).length === 0) return '';\n  const entries = Object.entries(distObj);\n  const total   = entries.reduce((s, [, v]) => s + Number(v), 0);\n  if (total === 0) return '';\n  return entries.map(([label, count]) => {\n    const pct = Math.round((Number(count) / total) * 100);\n    return `\n      <div class=\"dist-row\">\n        <span class=\"dist-label\">${label}</span>\n        <div class=\"dist-bar-wrap\">\n          <div class=\"dist-bar ${colorClass}\" style=\"width:${pct}%\"></div>\n        </div>\n        <span class=\"dist-count\">${count} <span class=\"dist-pct\">(${pct}%)</span></span>\n      </div>`;\n  }).join('');\n}\n\n// ── 5. RENDU CHECK ───────────────────────────────────────────\nfunction renderCheck(check) {\n  if (!check || (typeof check === 'object' && Object.keys(check).length === 0)) {\n    return '<div class=\"empty-state\"><span class=\"empty-icon\">o</span><p>Analyse de la situation actuelle.</p></div>';\n  }\n  let html = '';\n  if (check.description) html += '<p class=\"check-desc\">' + check.description + '</p>';\n\n  const decouvertes = check.decouvertes || check.findings || [];\n  if (Array.isArray(decouvertes) && decouvertes.length > 0) {\n    html += decouvertes.map(function(d) {\n      const nom  = d.nom || d.name || d.titre || '-';\n      const comm = d.commentaire || d.comment || d.description || '-';\n      const pos  = nom.toLowerCase().match(/fort|positif|strength|bon|bonne/);\n      return '<div class=\"finding ' + (pos ? 'finding--pos' : 'finding--neg') + '\">'\n        + '<div class=\"finding-dot\"></div>'\n        + '<div><div class=\"finding-name\">' + nom + '</div>'\n        + '<div class=\"finding-comment\">' + comm + '</div></div>'\n        + '</div>';\n    }).join('');\n  } else if (check.analyse_check) {\n    html += '<p class=\"check-desc\">' + check.analyse_check + '</p>';\n  }\n  return html || '<div class=\"empty-state\"><span class=\"empty-icon\">o</span><p>Analyse de la situation actuelle.</p></div>';\n}\n\n// ── 6. RENDU ACT ─────────────────────────────────────────────\nfunction renderAct(act) {\n  if (!act || act.length === 0) {\n    return '<div class=\"empty-state\"><span class=\"empty-icon\">o</span><p>Aucune decision enregistree pour ce cycle.</p></div>';\n  }\n  const rows = act.map(function(item) {\n    const prio = (item.priorite || item.priority || '').toLowerCase();\n    return '<tr>'\n      + '<td>' + (item.action || item.Action || item.description || '-') + '</td>'\n      + '<td><span class=\"prio prio--' + prio + '\">' + (item.priorite || item.priority || '-') + '</span></td>'\n      + '<td>' + (item.responsable || item.responsible || '-') + '</td>'\n      + '<td>' + (item.delai || item.deadline || '-') + '</td>'\n      + '<td>' + (item.cout_estime !== undefined ? fmtEur(item.cout_estime) : (item.cout || '-')) + '</td>'\n      + '</tr>';\n  }).join('');\n  return '<div class=\"table-wrap\"><table>'\n    + '<thead><tr><th>Action</th><th>Priorite</th><th>Responsable</th><th>Delai</th><th>Cout estime</th></tr></thead>'\n    + '<tbody>' + rows + '</tbody>'\n    + '</table></div>';\n}\n\n// ── 7. RENDU PLAN ────────────────────────────────────────────\nfunction renderPlan(plan) {\n  if (!plan || (typeof plan === 'object' && Object.keys(plan).length === 0)) {\n    return '<div class=\"empty-state\"><span class=\"empty-icon\">o</span><p>Aucun plan defini pour ce cycle.</p></div>';\n  }\n  if (plan.cycle_PDCA && typeof plan.cycle_PDCA === 'string') {\n    try { plan = { cycle_PDCA: JSON.parse(plan.cycle_PDCA) }; } catch (_) {}\n  }\n  if (!plan.cycle_PDCA) {\n    if (plan.objectif || plan.echeancier || plan.ressources_necessaires) {\n      plan = { cycle_PDCA: plan };\n    } else {\n      return '<div class=\"empty-state\"><span class=\"empty-icon\">o</span><p>Structure du plan non reconnue.</p></div>';\n    }\n  }\n  const c   = plan.cycle_PDCA;\n  const obj = c.objectif || {};\n  const res = c.ressources_necessaires || {};\n  const ech = c.echeancier || {};\n  const indicateurs = c.indicateurs_de_succes || obj.indicateur_de_succes || [];\n  const outils      = res.outils || [];\n\n  const timelineHtml = Object.entries(ech).map(function(entry) {\n    const periode = entry[0], taches = entry[1];\n    const chips = Array.isArray(taches)\n      ? taches.map(function(t) { return '<span class=\"task-chip\">' + String(t).trim() + '</span>'; }).join('')\n      : '<span class=\"task-chip\">' + taches + '</span>';\n    return '<div class=\"timeline-row\"><span class=\"tl-period\">' + periode + '</span><div class=\"tl-tasks\">' + chips + '</div></div>';\n  }).join('');\n\n  const indicateursHtml = Array.isArray(indicateurs)\n    ? indicateurs.map(function(i) { return '<li>' + (typeof i === 'string' ? i.trim() : JSON.stringify(i)) + '</li>'; }).join('')\n    : Object.keys(indicateurs).map(function(k) { return '<li>' + k + '</li>'; }).join('');\n\n  const outilsHtml = outils.map(function(o) { return '<span class=\"tool-tag\">' + String(o).trim() + '</span>'; }).join('');\n\n  return '<div class=\"plan-objective\">'\n    + '<div class=\"plan-obj-title\">' + (obj.titre || 'Objectif non defini') + '</div>'\n    + '<div class=\"plan-obj-desc\">' + (obj.description || '') + '</div>'\n    + '</div>'\n    + '<div class=\"plan-meta-grid\">'\n    + '<div class=\"plan-meta-card\"><div class=\"meta-label\">Budget alloue</div><div class=\"meta-value\">' + (res.budget ? fmtEur(res.budget) : '-') + '</div></div>'\n    + '<div class=\"plan-meta-card\"><div class=\"meta-label\">Personnel</div><div class=\"meta-value\">' + safe(res.personnel) + '<span class=\"meta-unit\"> pers.</span></div></div>'\n    + '</div>'\n    + (indicateursHtml ? '<div class=\"plan-block\"><div class=\"plan-block-label\">Indicateurs de succes</div><ul class=\"objectives-list\">' + indicateursHtml + '</ul></div>' : '')\n    + (outilsHtml ? '<div class=\"plan-block\"><div class=\"plan-block-label\">Outils requis</div><div class=\"tools-list\">' + outilsHtml + '</div></div>' : '')\n    + (timelineHtml ? '<div class=\"plan-block\"><div class=\"plan-block-label\">Echeancier</div><div class=\"timeline\">' + timelineHtml + '</div></div>' : '');\n}\n\n// ── 8. HTML COMPLET ──────────────────────────────────────────\nconst html = '<!DOCTYPE html>\\n<html lang=\"fr\">\\n<head>\\n'\n  + '<meta charset=\"UTF-8\">\\n'\n  + '<meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\\n'\n  + '<title>Rapport PDCA - Qualite Industrielle</title>\\n'\n  + '<link rel=\"preconnect\" href=\"https://fonts.googleapis.com\">\\n'\n  + '<link href=\"https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap\" rel=\"stylesheet\">\\n'\n  + '<style>\\n'\n  + '*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }\\n'\n  + ':root {\\n'\n  + '  --bg:#F2F1ED; --surface:#FFFFFF; --surface-2:#F8F7F4;\\n'\n  + '  --border:#E3E1D9; --border-2:#CCCAC0;\\n'\n  + '  --text:#18170F; --text-2:#58564E; --text-3:#9A9890;\\n'\n  + '  --accent:#2558D9;\\n'\n  + '  --blue-bg:#EBF0FA; --blue-text:#1A45A0; --blue-bar:#3B6FE0;\\n'\n  + '  --green:#1A6638; --green-bg:#E7F4ED; --green-text:#155530; --green-bar:#2E9955;\\n'\n  + '  --amber:#7A4800; --amber-bg:#FEF3E0; --amber-text:#7A4800; --amber-bar:#D4820A;\\n'\n  + '  --red:#991818; --red-bg:#FEEDED; --red-text:#991818;\\n'\n  + '  --purple-bar:#6B44D4;\\n'\n  + '  --radius:10px; --radius-lg:14px;\\n'\n  + '  --shadow:0 1px 3px rgba(0,0,0,0.07);\\n'\n  + '}\\n'\n  + 'body { font-family:\"DM Sans\",sans-serif; background:var(--bg); color:var(--text); padding:2rem 1rem 4rem; min-height:100vh; }\\n'\n  + '.page { max-width:860px; margin:0 auto; }\\n'\n  + '.header { text-align:center; margin-bottom:2rem; padding-bottom:1.75rem; border-bottom:1px solid var(--border); }\\n'\n  + '.eyebrow { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:500; letter-spacing:1.1px; text-transform:uppercase; color:var(--text-3); background:var(--surface); border:1px solid var(--border); padding:4px 13px; border-radius:20px; margin-bottom:12px; }\\n'\n  + '.eyebrow::before { content:\"\"; width:6px; height:6px; border-radius:50%; background:var(--accent); }\\n'\n  + '.header h1 { font-size:26px; font-weight:600; letter-spacing:-0.4px; }\\n'\n  + '.header-sub { font-size:13px; color:var(--text-2); margin-top:5px; }\\n'\n  + '.kpi-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px; }\\n'\n  + '.kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 15px; box-shadow:var(--shadow); }\\n'\n  + '.kpi-label { font-size:10px; font-weight:600; color:var(--text-3); letter-spacing:0.6px; text-transform:uppercase; margin-bottom:8px; }\\n'\n  + '.kpi-value { font-size:21px; font-weight:600; color:var(--text); letter-spacing:-0.4px; line-height:1.1; }\\n'\n  + '.kpi-value.na { font-size:12px; color:var(--text-3); font-weight:400; display:flex; align-items:center; gap:8px; }\\n'\n  + '.kpi-value.na::before { content:\"\"; display:inline-block; width:18px; height:2px; background:var(--border-2); border-radius:2px; }\\n'\n  + '.kpi-hint { font-size:10px; color:var(--text-3); margin-top:5px; font-style:italic; }\\n'\n  + '.kpi-sub  { font-size:11px; color:var(--text-3); margin-top:4px; }\\n'\n  + '.dist-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:1.25rem; }\\n'\n  + '.dist-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 15px; box-shadow:var(--shadow); }\\n'\n  + '.dist-title { font-size:10px; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:10px; }\\n'\n  + '.dist-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }\\n'\n  + '.dist-row:last-child { margin-bottom:0; }\\n'\n  + '.dist-label { font-size:11px; color:var(--text-2); min-width:110px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }\\n'\n  + '.dist-bar-wrap { flex:1; height:6px; background:var(--bg); border-radius:3px; overflow:hidden; }\\n'\n  + '.dist-bar { height:100%; border-radius:3px; }\\n'\n  + '.bar-blue   { background:var(--blue-bar); }\\n'\n  + '.bar-green  { background:var(--green-bar); }\\n'\n  + '.bar-amber  { background:var(--amber-bar); }\\n'\n  + '.bar-purple { background:var(--purple-bar); }\\n'\n  + '.dist-count { font-size:11px; font-family:\"DM Mono\",monospace; color:var(--text-2); min-width:70px; text-align:right; }\\n'\n  + '.dist-pct   { color:var(--text-3); }\\n'\n  + '.section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); margin-bottom:10px; overflow:hidden; }\\n'\n  + '.section-header { display:flex; align-items:center; gap:10px; padding:13px 18px; border-bottom:1px solid var(--border); background:var(--surface-2); }\\n'\n  + '.phase-badge { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:3px 9px; border-radius:20px; flex-shrink:0; }\\n'\n  + '.badge-check { background:var(--green-bg); color:var(--green-text); }\\n'\n  + '.badge-act   { background:var(--amber-bg); color:var(--amber-text); }\\n'\n  + '.badge-plan  { background:var(--blue-bg);  color:var(--blue-text); }\\n'\n  + '.badge-do    { background:var(--surface-2); color:var(--text-2); border:1px solid var(--border); }\\n'\n  + '.section-title { font-size:14px; font-weight:500; }\\n'\n  + '.section-body { padding:18px; }\\n'\n  + '.section-body.no-pad { padding:0; }\\n'\n  + '.check-desc { font-size:13px; color:var(--text-2); margin-bottom:12px; line-height:1.65; }\\n'\n  + '.finding { display:flex; gap:11px; align-items:flex-start; padding:11px 13px; border-radius:var(--radius); margin-bottom:8px; border:1px solid; }\\n'\n  + '.finding:last-child { margin-bottom:0; }\\n'\n  + '.finding--pos { background:var(--green-bg); border-color:#B6D9C3; }\\n'\n  + '.finding--neg { background:var(--amber-bg); border-color:#F2D99A; }\\n'\n  + '.finding-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:4px; }\\n'\n  + '.finding--pos .finding-dot { background:var(--green); }\\n'\n  + '.finding--neg .finding-dot { background:var(--amber); }\\n'\n  + '.finding-name { font-size:13px; font-weight:500; margin-bottom:3px; }\\n'\n  + '.finding--pos .finding-name { color:var(--green-text); }\\n'\n  + '.finding--neg .finding-name { color:var(--amber-text); }\\n'\n  + '.finding-comment { font-size:12px; color:var(--text-2); line-height:1.55; }\\n'\n  + '.table-wrap { overflow-x:auto; }\\n'\n  + 'table { width:100%; border-collapse:collapse; font-size:13px; }\\n'\n  + 'thead tr { border-bottom:1px solid var(--border); }\\n'\n  + 'th { padding:10px 16px; text-align:left; font-size:10px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:var(--text-3); background:var(--surface-2); }\\n'\n  + 'td { padding:11px 16px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:middle; }\\n'\n  + 'tbody tr:last-child td { border-bottom:none; }\\n'\n  + 'tbody tr:hover td { background:var(--surface-2); }\\n'\n  + '.prio { font-size:10px; font-weight:700; padding:2px 8px; border-radius:12px; text-transform:capitalize; }\\n'\n  + '.prio--haute,.prio--high,.prio--critique { background:var(--red-bg); color:var(--red-text); }\\n'\n  + '.prio--moyenne,.prio--medium,.prio--moyen { background:var(--amber-bg); color:var(--amber-text); }\\n'\n  + '.prio--basse,.prio--low,.prio--faible { background:var(--green-bg); color:var(--green-text); }\\n'\n  + '.plan-objective { background:var(--blue-bg); border:1px solid #BDD0F2; border-radius:var(--radius); padding:14px 16px; margin-bottom:14px; }\\n'\n  + '.plan-obj-title { font-size:15px; font-weight:600; color:var(--blue-text); margin-bottom:4px; }\\n'\n  + '.plan-obj-desc { font-size:13px; color:#3A5D9A; line-height:1.6; }\\n'\n  + '.plan-meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }\\n'\n  + '.plan-meta-card { background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; }\\n'\n  + '.meta-label { font-size:10px; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }\\n'\n  + '.meta-value { font-size:18px; font-weight:600; color:var(--text); }\\n'\n  + '.meta-unit  { font-size:12px; font-weight:400; color:var(--text-2); }\\n'\n  + '.plan-block { margin-bottom:14px; }\\n'\n  + '.plan-block:last-child { margin-bottom:0; }\\n'\n  + '.plan-block-label { font-size:10px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:var(--text-3); margin-bottom:8px; }\\n'\n  + '.objectives-list { list-style:none; }\\n'\n  + '.objectives-list li { font-size:13px; color:var(--text-2); padding:5px 0 5px 16px; position:relative; line-height:1.5; border-bottom:1px solid var(--border); }\\n'\n  + '.objectives-list li:last-child { border-bottom:none; }\\n'\n  + '.objectives-list li::before { content:\"\"; position:absolute; left:0; top:12px; width:5px; height:5px; border-radius:50%; background:var(--accent); }\\n'\n  + '.tools-list { display:flex; flex-wrap:wrap; gap:6px; }\\n'\n  + '.tool-tag { font-size:12px; padding:4px 10px; border-radius:20px; background:var(--surface-2); border:1px solid var(--border); color:var(--text-2); font-family:\"DM Mono\",monospace; }\\n'\n  + '.timeline { display:flex; flex-direction:column; gap:8px; }\\n'\n  + '.timeline-row { display:flex; gap:12px; align-items:flex-start; }\\n'\n  + '.tl-period { font-size:10px; font-weight:700; padding:4px 10px; border-radius:12px; background:var(--blue-bg); color:var(--blue-text); border:1px solid #BDD0F2; white-space:nowrap; flex-shrink:0; margin-top:1px; }\\n'\n  + '.tl-tasks { display:flex; flex-wrap:wrap; gap:5px; }\\n'\n  + '.task-chip { font-size:12px; padding:3px 9px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); color:var(--text-2); }\\n'\n  + '.do-status { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:var(--green-bg); border:1px solid #B6D9C3; border-radius:var(--radius); }\\n'\n  + '.do-icon { width:26px; height:26px; border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }\\n'\n  + '.do-status-text { font-size:13px; font-weight:500; color:var(--green-text); line-height:1.6; }\\n'\n  + '.empty-state { text-align:center; padding:2.5rem 1rem; color:var(--text-3); }\\n'\n  + '.empty-icon { font-size:22px; margin-bottom:8px; display:block; font-family:\"DM Mono\",monospace; }\\n'\n  + '.empty-state p { font-size:13px; }\\n'\n  + '.footer { text-align:center; margin-top:2.5rem; font-size:11px; color:var(--text-3); letter-spacing:0.3px; }\\n'\n  + '.footer strong { color:var(--text-2); font-weight:500; }\\n'\n  + '@media(max-width:640px){ .kpi-strip{grid-template-columns:1fr 1fr;} .dist-grid{grid-template-columns:1fr;} .plan-meta-grid{grid-template-columns:1fr;} }\\n'\n  + '@media(max-width:400px){ .kpi-strip{grid-template-columns:1fr;} }\\n'\n  + '</style>\\n</head>\\n<body>\\n<div class=\"page\">\\n'\n\n  // Header\n  + '<div class=\"header\">'\n  + '<div class=\"eyebrow\">AI PDCA Orchestrator</div>'\n  + '<h1>Rapport Qualite Industrielle</h1>'\n  + '<div class=\"header-sub\">' + today + '</div>'\n  + '</div>\\n'\n\n  // KPIs principaux\n  + '<div class=\"kpi-strip\">'\n  + '<div class=\"kpi-card\"><div class=\"kpi-label\">Total defauts</div>'\n  + '<div class=\"kpi-value ' + (kpis.total_defects ? '' : 'na') + '\">' + (kpis.total_defects ? fmt(kpis.total_defects) : 'Non renseigne') + '</div>'\n  + (!kpis.total_defects ? '<div class=\"kpi-hint\">Donnees non disponibles</div>' : '') + '</div>'\n\n  + '<div class=\"kpi-card\"><div class=\"kpi-label\">Cout total reparation</div>'\n  + '<div class=\"kpi-value ' + (kpis.total_repair_cost ? '' : 'na') + '\">' + (kpis.total_repair_cost ? fmtEur(kpis.total_repair_cost) : 'Non renseigne') + '</div>'\n  + (!kpis.total_repair_cost ? '<div class=\"kpi-hint\">Donnees non disponibles</div>' : '') + '</div>'\n\n  + '<div class=\"kpi-card\"><div class=\"kpi-label\">Cout moyen / defaut</div>'\n  + '<div class=\"kpi-value ' + (kpis.avg_repair_cost ? '' : 'na') + '\">' + (kpis.avg_repair_cost ? fmtEur(kpis.avg_repair_cost) : 'Non renseigne') + '</div>'\n  + (!kpis.avg_repair_cost ? '<div class=\"kpi-hint\">Donnees non disponibles</div>' : '') + '</div>'\n\n  + '<div class=\"kpi-card\"><div class=\"kpi-label\">Severite frequente</div>'\n  + '<div class=\"kpi-value ' + (kpis.most_common_severity ? '' : 'na') + '\">' + (kpis.most_common_severity || 'Non renseigne') + '</div>'\n  + (kpis.valid_repair_cost_count ? '<div class=\"kpi-sub\">' + fmt(kpis.valid_repair_cost_count) + ' controles</div>' : (!kpis.most_common_severity ? '<div class=\"kpi-hint\">Donnees non disponibles</div>' : ''))\n  + '</div>'\n  + '</div>\\n'\n\n  // Distributions\n  + ((Object.keys(severityDist).length || Object.keys(defectTypeDist).length || Object.keys(locationDist).length || Object.keys(methodDist).length) ?\n    '<div class=\"dist-grid\">'\n    + (Object.keys(severityDist).length   ? '<div class=\"dist-card\"><div class=\"dist-title\">Distribution par severite</div>'        + renderDistribution(severityDist,   'bar-blue')   + '</div>' : '')\n    + (Object.keys(defectTypeDist).length ? '<div class=\"dist-card\"><div class=\"dist-title\">Distribution par type de defaut</div>'  + renderDistribution(defectTypeDist, 'bar-amber')  + '</div>' : '')\n    + (Object.keys(locationDist).length   ? '<div class=\"dist-card\"><div class=\"dist-title\">Distribution par localisation</div>'    + renderDistribution(locationDist,   'bar-green')  + '</div>' : '')\n    + (Object.keys(methodDist).length     ? '<div class=\"dist-card\"><div class=\"dist-title\">Methode d\\'inspection</div>'            + renderDistribution(methodDist,     'bar-purple') + '</div>' : '')\n    + '</div>\\n'\n    : '')\n\n  // CHECK\n  + '<div class=\"section\"><div class=\"section-header\"><span class=\"phase-badge badge-check\">Check</span><span class=\"section-title\">Analyse de la situation actuelle</span></div>'\n  + '<div class=\"section-body\">' + renderCheck(check) + '</div></div>\\n'\n\n  // ACT\n  + '<div class=\"section\"><div class=\"section-header\"><span class=\"phase-badge badge-act\">Act</span><span class=\"section-title\">Decisions et actions correctives</span></div>'\n  + '<div class=\"section-body ' + (act.length > 0 ? 'no-pad' : '') + '\">' + renderAct(act) + '</div></div>\\n'\n\n  // PLAN\n  + '<div class=\"section\"><div class=\"section-header\"><span class=\"phase-badge badge-plan\">Plan</span><span class=\"section-title\">Plan d\\'action - cycle PDCA</span></div>'\n  + '<div class=\"section-body\">' + renderPlan(plan) + '</div></div>\\n'\n\n  // DO\n  + '<div class=\"section\"><div class=\"section-header\"><span class=\"phase-badge badge-do\">Do</span><span class=\"section-title\">Phase Do - simulation</span></div>'\n  + '<div class=\"section-body\"><div class=\"do-status\">'\n  + '<div class=\"do-icon\"><svg width=\"13\" height=\"13\" viewBox=\"0 0 13 13\" fill=\"none\"><path d=\"M2 6.5L5 9.5L11 3.5\" stroke=\"white\" stroke-width=\"1.8\" stroke-linecap=\"round\" stroke-linejoin=\"round\"/></svg></div>'\n  + '<div class=\"do-status-text\">' + doMsg + '</div>'\n  + '</div></div></div>\\n'\n\n  // Footer\n  + '<div class=\"footer\">Genere automatiquement &middot; <strong>' + today + '</strong> &middot; AI PDCA Orchestrator</div>\\n'\n  + '</div>\\n</body>\\n</html>';\n\nreturn [{\n  json: {},\n  binary: {\n    data: {\n      fileName: 'PDCA_Rapport_Qualite_' + new Date().toISOString().slice(0, 10) + '.html',\n      mimeType: 'text/html',\n      data: Buffer.from(html).toString('base64')\n    }\n  }\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        720,
+        560
+      ],
+      "id": "af94f2da-d2d9-4ccc-af21-f08806db7d09",
+      "name": "Code in JavaScript4"
+    },
+    {
+      "parameters": {
+        "operation": "write",
+        "fileName": "/data/PDCA_Report.html",
+        "options": {}
+      },
+      "type": "n8n-nodes-base.readWriteFile",
+      "typeVersion": 1.1,
+      "position": [
+        1120,
+        160
+      ],
+      "id": "0a9aceab-fa97-432f-a5af-05e9df722177",
+      "name": "Read/Write Files from Disk1"
+    }
+  ],
+  "pinData": {},
+  "connections": {
+    "When clicking ‘Execute workflow’": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Read/Write Files from Disk": {
+      "main": [
+        [
+          {
+            "node": "Extract from File",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Extract from File": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain",
+            "type": "main",
+            "index": 0
+          },
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model1": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Ollama Chat Model2": {
+      "ai_languageModel": [
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "ai_languageModel",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Basic LLM Chain2": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript3",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript1": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript2": {
+      "main": [
+        [
+          {
+            "node": "Basic LLM Chain2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript3": {
+      "main": [
+        [
+          {
+            "node": "Edit Fields",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Edit Fields1": {
+      "main": [
+        [
+          {
+            "node": "Code in JavaScript4",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Code in JavaScript4": {
+      "main": [
+        [
+          {
+            "node": "Read/Write Files from Disk1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": false,
+  "settings": {
+    "executionOrder": "v1",
+    "binaryMode": "separate"
+  },
+  "versionId": "d7296003-a8e4-4462-a66a-5c9a3d8692e0",
+  "meta": {
+    "instanceId": "1de2d3dc1d7da32e55d929e8ad4bc845beb67d17c04e0eef0ddd6dba0a531b2a"
+  },
+  "id": "c3nMIyWi61QGfLJc",
+  "tags": []
+}

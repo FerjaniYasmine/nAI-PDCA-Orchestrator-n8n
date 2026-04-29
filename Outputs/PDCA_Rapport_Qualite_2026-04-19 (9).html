@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Rapport PDCA - Qualite Industrielle</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=DM+Sans:wght@300;400;500;600&family=DM+Mono:wght@400;500&display=swap" rel="stylesheet">
+<style>
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+:root {
+  --bg:#F2F1ED; --surface:#FFFFFF; --surface-2:#F8F7F4;
+  --border:#E3E1D9; --border-2:#CCCAC0;
+  --text:#18170F; --text-2:#58564E; --text-3:#9A9890;
+  --accent:#2558D9;
+  --blue-bg:#EBF0FA; --blue-text:#1A45A0; --blue-bar:#3B6FE0;
+  --green:#1A6638; --green-bg:#E7F4ED; --green-text:#155530; --green-bar:#2E9955;
+  --amber:#7A4800; --amber-bg:#FEF3E0; --amber-text:#7A4800; --amber-bar:#D4820A;
+  --red:#991818; --red-bg:#FEEDED; --red-text:#991818;
+  --purple-bar:#6B44D4;
+  --radius:10px; --radius-lg:14px;
+  --shadow:0 1px 3px rgba(0,0,0,0.07);
+}
+body { font-family:"DM Sans",sans-serif; background:var(--bg); color:var(--text); padding:2rem 1rem 4rem; min-height:100vh; }
+.page { max-width:860px; margin:0 auto; }
+.header { text-align:center; margin-bottom:2rem; padding-bottom:1.75rem; border-bottom:1px solid var(--border); }
+.eyebrow { display:inline-flex; align-items:center; gap:7px; font-size:11px; font-weight:500; letter-spacing:1.1px; text-transform:uppercase; color:var(--text-3); background:var(--surface); border:1px solid var(--border); padding:4px 13px; border-radius:20px; margin-bottom:12px; }
+.eyebrow::before { content:""; width:6px; height:6px; border-radius:50%; background:var(--accent); }
+.header h1 { font-size:26px; font-weight:600; letter-spacing:-0.4px; }
+.header-sub { font-size:13px; color:var(--text-2); margin-top:5px; }
+.kpi-strip { display:grid; grid-template-columns:repeat(4,1fr); gap:10px; margin-bottom:10px; }
+.kpi-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 15px; box-shadow:var(--shadow); }
+.kpi-label { font-size:10px; font-weight:600; color:var(--text-3); letter-spacing:0.6px; text-transform:uppercase; margin-bottom:8px; }
+.kpi-value { font-size:21px; font-weight:600; color:var(--text); letter-spacing:-0.4px; line-height:1.1; }
+.kpi-value.na { font-size:12px; color:var(--text-3); font-weight:400; display:flex; align-items:center; gap:8px; }
+.kpi-value.na::before { content:""; display:inline-block; width:18px; height:2px; background:var(--border-2); border-radius:2px; }
+.kpi-hint { font-size:10px; color:var(--text-3); margin-top:5px; font-style:italic; }
+.kpi-sub  { font-size:11px; color:var(--text-3); margin-top:4px; }
+.dist-grid { display:grid; grid-template-columns:repeat(2,1fr); gap:10px; margin-bottom:1.25rem; }
+.dist-card { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius); padding:14px 15px; box-shadow:var(--shadow); }
+.dist-title { font-size:10px; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.6px; margin-bottom:10px; }
+.dist-row { display:flex; align-items:center; gap:8px; margin-bottom:7px; }
+.dist-row:last-child { margin-bottom:0; }
+.dist-label { font-size:11px; color:var(--text-2); min-width:110px; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+.dist-bar-wrap { flex:1; height:6px; background:var(--bg); border-radius:3px; overflow:hidden; }
+.dist-bar { height:100%; border-radius:3px; }
+.bar-blue   { background:var(--blue-bar); }
+.bar-green  { background:var(--green-bar); }
+.bar-amber  { background:var(--amber-bar); }
+.bar-purple { background:var(--purple-bar); }
+.dist-count { font-size:11px; font-family:"DM Mono",monospace; color:var(--text-2); min-width:70px; text-align:right; }
+.dist-pct   { color:var(--text-3); }
+.section { background:var(--surface); border:1px solid var(--border); border-radius:var(--radius-lg); box-shadow:var(--shadow); margin-bottom:10px; overflow:hidden; }
+.section-header { display:flex; align-items:center; gap:10px; padding:13px 18px; border-bottom:1px solid var(--border); background:var(--surface-2); }
+.phase-badge { font-size:10px; font-weight:700; letter-spacing:1px; text-transform:uppercase; padding:3px 9px; border-radius:20px; flex-shrink:0; }
+.badge-check { background:var(--green-bg); color:var(--green-text); }
+.badge-act   { background:var(--amber-bg); color:var(--amber-text); }
+.badge-plan  { background:var(--blue-bg);  color:var(--blue-text); }
+.badge-do    { background:var(--surface-2); color:var(--text-2); border:1px solid var(--border); }
+.section-title { font-size:14px; font-weight:500; }
+.section-body { padding:18px; }
+.section-body.no-pad { padding:0; }
+.check-desc { font-size:13px; color:var(--text-2); margin-bottom:12px; line-height:1.65; }
+.finding { display:flex; gap:11px; align-items:flex-start; padding:11px 13px; border-radius:var(--radius); margin-bottom:8px; border:1px solid; }
+.finding:last-child { margin-bottom:0; }
+.finding--pos { background:var(--green-bg); border-color:#B6D9C3; }
+.finding--neg { background:var(--amber-bg); border-color:#F2D99A; }
+.finding-dot { width:8px; height:8px; border-radius:50%; flex-shrink:0; margin-top:4px; }
+.finding--pos .finding-dot { background:var(--green); }
+.finding--neg .finding-dot { background:var(--amber); }
+.finding-name { font-size:13px; font-weight:500; margin-bottom:3px; }
+.finding--pos .finding-name { color:var(--green-text); }
+.finding--neg .finding-name { color:var(--amber-text); }
+.finding-comment { font-size:12px; color:var(--text-2); line-height:1.55; }
+.table-wrap { overflow-x:auto; }
+table { width:100%; border-collapse:collapse; font-size:13px; }
+thead tr { border-bottom:1px solid var(--border); }
+th { padding:10px 16px; text-align:left; font-size:10px; font-weight:700; letter-spacing:0.5px; text-transform:uppercase; color:var(--text-3); background:var(--surface-2); }
+td { padding:11px 16px; border-bottom:1px solid var(--border); color:var(--text); vertical-align:middle; }
+tbody tr:last-child td { border-bottom:none; }
+tbody tr:hover td { background:var(--surface-2); }
+.prio { font-size:10px; font-weight:700; padding:2px 8px; border-radius:12px; text-transform:capitalize; }
+.prio--haute,.prio--high,.prio--critique { background:var(--red-bg); color:var(--red-text); }
+.prio--moyenne,.prio--medium,.prio--moyen { background:var(--amber-bg); color:var(--amber-text); }
+.prio--basse,.prio--low,.prio--faible { background:var(--green-bg); color:var(--green-text); }
+.plan-objective { background:var(--blue-bg); border:1px solid #BDD0F2; border-radius:var(--radius); padding:14px 16px; margin-bottom:14px; }
+.plan-obj-title { font-size:15px; font-weight:600; color:var(--blue-text); margin-bottom:4px; }
+.plan-obj-desc { font-size:13px; color:#3A5D9A; line-height:1.6; }
+.plan-meta-grid { display:grid; grid-template-columns:1fr 1fr; gap:10px; margin-bottom:14px; }
+.plan-meta-card { background:var(--surface-2); border:1px solid var(--border); border-radius:var(--radius); padding:12px 14px; }
+.meta-label { font-size:10px; font-weight:600; color:var(--text-3); text-transform:uppercase; letter-spacing:0.5px; margin-bottom:5px; }
+.meta-value { font-size:18px; font-weight:600; color:var(--text); }
+.meta-unit  { font-size:12px; font-weight:400; color:var(--text-2); }
+.plan-block { margin-bottom:14px; }
+.plan-block:last-child { margin-bottom:0; }
+.plan-block-label { font-size:10px; font-weight:700; letter-spacing:0.6px; text-transform:uppercase; color:var(--text-3); margin-bottom:8px; }
+.objectives-list { list-style:none; }
+.objectives-list li { font-size:13px; color:var(--text-2); padding:5px 0 5px 16px; position:relative; line-height:1.5; border-bottom:1px solid var(--border); }
+.objectives-list li:last-child { border-bottom:none; }
+.objectives-list li::before { content:""; position:absolute; left:0; top:12px; width:5px; height:5px; border-radius:50%; background:var(--accent); }
+.tools-list { display:flex; flex-wrap:wrap; gap:6px; }
+.tool-tag { font-size:12px; padding:4px 10px; border-radius:20px; background:var(--surface-2); border:1px solid var(--border); color:var(--text-2); font-family:"DM Mono",monospace; }
+.timeline { display:flex; flex-direction:column; gap:8px; }
+.timeline-row { display:flex; gap:12px; align-items:flex-start; }
+.tl-period { font-size:10px; font-weight:700; padding:4px 10px; border-radius:12px; background:var(--blue-bg); color:var(--blue-text); border:1px solid #BDD0F2; white-space:nowrap; flex-shrink:0; margin-top:1px; }
+.tl-tasks { display:flex; flex-wrap:wrap; gap:5px; }
+.task-chip { font-size:12px; padding:3px 9px; border-radius:12px; background:var(--surface-2); border:1px solid var(--border); color:var(--text-2); }
+.do-status { display:flex; align-items:flex-start; gap:12px; padding:14px 16px; background:var(--green-bg); border:1px solid #B6D9C3; border-radius:var(--radius); }
+.do-icon { width:26px; height:26px; border-radius:50%; background:var(--green); display:flex; align-items:center; justify-content:center; flex-shrink:0; margin-top:1px; }
+.do-status-text { font-size:13px; font-weight:500; color:var(--green-text); line-height:1.6; }
+.empty-state { text-align:center; padding:2.5rem 1rem; color:var(--text-3); }
+.empty-icon { font-size:22px; margin-bottom:8px; display:block; font-family:"DM Mono",monospace; }
+.empty-state p { font-size:13px; }
+.footer { text-align:center; margin-top:2.5rem; font-size:11px; color:var(--text-3); letter-spacing:0.3px; }
+.footer strong { color:var(--text-2); font-weight:500; }
+@media(max-width:640px){ .kpi-strip{grid-template-columns:1fr 1fr;} .dist-grid{grid-template-columns:1fr;} .plan-meta-grid{grid-template-columns:1fr;} }
+@media(max-width:400px){ .kpi-strip{grid-template-columns:1fr;} }
+</style>
+</head>
+<body>
+<div class="page">
+<div class="header"><div class="eyebrow">AI PDCA Orchestrator</div><h1>Rapport Qualite Industrielle</h1><div class="header-sub">19 avril 2026</div></div>
+<div class="kpi-strip"><div class="kpi-card"><div class="kpi-label">Total defauts</div><div class="kpi-value ">1 000</div></div><div class="kpi-card"><div class="kpi-label">Cout total reparation</div><div class="kpi-value ">507 627,15 EUR</div></div><div class="kpi-card"><div class="kpi-label">Cout moyen / defaut</div><div class="kpi-value ">507,63 EUR</div></div><div class="kpi-card"><div class="kpi-label">Severite frequente</div><div class="kpi-value ">Minor</div><div class="kpi-sub">1 000 controles</div></div></div>
+<div class="dist-grid"><div class="dist-card"><div class="dist-title">Distribution par severite</div>
+      <div class="dist-row">
+        <span class="dist-label">Minor</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-blue" style="width:36%"></div>
+        </div>
+        <span class="dist-count">358 <span class="dist-pct">(36%)</span></span>
+      </div>
+      <div class="dist-row">
+        <span class="dist-label">Critical</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-blue" style="width:33%"></div>
+        </div>
+        <span class="dist-count">333 <span class="dist-pct">(33%)</span></span>
+      </div>
+      <div class="dist-row">
+        <span class="dist-label">Moderate</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-blue" style="width:31%"></div>
+        </div>
+        <span class="dist-count">309 <span class="dist-pct">(31%)</span></span>
+      </div></div><div class="dist-card"><div class="dist-title">Distribution par type de defaut</div>
+      <div class="dist-row">
+        <span class="dist-label">Structural</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-amber" style="width:35%"></div>
+        </div>
+        <span class="dist-count">352 <span class="dist-pct">(35%)</span></span>
+      </div>
+      <div class="dist-row">
+        <span class="dist-label">Functional</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-amber" style="width:34%"></div>
+        </div>
+        <span class="dist-count">339 <span class="dist-pct">(34%)</span></span>
+      </div>
+      <div class="dist-row">
+        <span class="dist-label">Cosmetic</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-amber" style="width:31%"></div>
+        </div>
+        <span class="dist-count">309 <span class="dist-pct">(31%)</span></span>
+      </div></div><div class="dist-card"><div class="dist-title">Distribution par localisation</div>
+      <div class="dist-row">
+        <span class="dist-label">Component</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-green" style="width:33%"></div>
+        </div>
+        <span class="dist-count">326 <span class="dist-pct">(33%)</span></span>
+      </div>
+      <div class="dist-row">
+        <span class="dist-label">Internal</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-green" style="width:32%"></div>
+        </div>
+        <span class="dist-count">321 <span class="dist-pct">(32%)</span></span>
+      </div>
+      <div class="dist-row">
+        <span class="dist-label">Surface</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-green" style="width:35%"></div>
+        </div>
+        <span class="dist-count">353 <span class="dist-pct">(35%)</span></span>
+      </div></div><div class="dist-card"><div class="dist-title">Methode d'inspection</div>
+      <div class="dist-row">
+        <span class="dist-label">Visual Inspection</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-purple" style="width:35%"></div>
+        </div>
+        <span class="dist-count">351 <span class="dist-pct">(35%)</span></span>
+      </div>
+      <div class="dist-row">
+        <span class="dist-label">Automated Testing</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-purple" style="width:30%"></div>
+        </div>
+        <span class="dist-count">297 <span class="dist-pct">(30%)</span></span>
+      </div>
+      <div class="dist-row">
+        <span class="dist-label">Manual Testing</span>
+        <div class="dist-bar-wrap">
+          <div class="dist-bar bar-purple" style="width:35%"></div>
+        </div>
+        <span class="dist-count">352 <span class="dist-pct">(35%)</span></span>
+      </div></div></div>
+<div class="section"><div class="section-header"><span class="phase-badge badge-check">Check</span><span class="section-title">Analyse de la situation actuelle</span></div><div class="section-body"><div class="empty-state"><span class="empty-icon">o</span><p>Analyse de la situation actuelle.</p></div></div></div>
+<div class="section"><div class="section-header"><span class="phase-badge badge-act">Act</span><span class="section-title">Decisions et actions correctives</span></div><div class="section-body no-pad"><div class="table-wrap"><table><thead><tr><th>Action</th><th>Priorite</th><th>Responsable</th><th>Delai</th><th>Cout estime</th></tr></thead><tbody><tr><td>Mise à jour des processus de fabrication pour améliorer la qualité et la rapidité de production</td><td><span class="prio prio--high">High</span></td><td>Jean Dupont</td><td>dans 3 semaines</td><td>NaN EUR</td></tr><tr><td>Formation des employés pour une meilleure compréhension des processus de fabrication et de la qualité</td><td><span class="prio prio--medium">Medium</span></td><td>Pierre Martin</td><td>dans 6 semaines</td><td>NaN EUR</td></tr></tbody></table></div></div></div>
+<div class="section"><div class="section-header"><span class="phase-badge badge-plan">Plan</span><span class="section-title">Plan d'action - cycle PDCA</span></div><div class="section-body"><div class="plan-objective"><div class="plan-obj-title">Améliorer la qualité des services clients</div><div class="plan-obj-desc">Réduire les retours et améliorer la satisfaction client</div></div><div class="plan-meta-grid"><div class="plan-meta-card"><div class="meta-label">Budget alloue</div><div class="meta-value">10 000 EUR</div></div><div class="plan-meta-card"><div class="meta-label">Personnel</div><div class="meta-value">5<span class="meta-unit"> pers.</span></div></div></div><div class="plan-block"><div class="plan-block-label">Indicateurs de succes</div><ul class="objectives-list"><li>Taux de satisfaction client</li><li>Nombre de retours</li></ul></div><div class="plan-block"><div class="plan-block-label">Outils requis</div><div class="tools-list"><span class="tool-tag">CRM</span><span class="tool-tag">Système de gestion des retours</span></div></div><div class="plan-block"><div class="plan-block-label">Echeancier</div><div class="timeline"><div class="timeline-row"><span class="tl-period">Semaine 1-2</span><div class="tl-tasks"><span class="task-chip">Définition des objectifs et des indicateurs</span><span class="task-chip">Répartition des tâches</span></div></div><div class="timeline-row"><span class="tl-period">Semaine 3-4</span><div class="tl-tasks"><span class="task-chip">Mise en œuvre du système de gestion des retours</span><span class="task-chip">Formation du personnel</span></div></div><div class="timeline-row"><span class="tl-period">Semaine 5-6</span><div class="tl-tasks"><span class="task-chip">Analyse des résultats et ajustement des indicateurs</span><span class="task-chip">Présentation des résultats à l'équipe</span></div></div></div></div></div></div>
+<div class="section"><div class="section-header"><span class="phase-badge badge-do">Do</span><span class="section-title">Phase Do - simulation</span></div><div class="section-body"><div class="do-status"><div class="do-icon"><svg width="13" height="13" viewBox="0 0 13 13" fill="none"><path d="M2 6.5L5 9.5L11 3.5" stroke="white" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/></svg></div><div class="do-status-text">Plan mis en œuvre automatiquement dans le prochain cycle PDCA. Simulation Do terminée avec succès.</div></div></div></div>
+<div class="footer">Genere automatiquement &middot; <strong>19 avril 2026</strong> &middot; AI PDCA Orchestrator</div>
+</div>
+</body>
+</html>
